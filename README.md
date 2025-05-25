@@ -24,4 +24,4 @@ This project visualizes electromagnetic field interactions between a 5G tower an
 - Signal visualization in dense environments
 
 ## Author
-[Your Name] – Electrical Engineer & Simulation Enthusiast
+Brian McCoy
