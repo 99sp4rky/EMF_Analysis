@@ -1,20 +1,23 @@
+%% RESOLUTION CONTROL
+theta_res = 90;     % was 180
+phi_res = 180;      % was 360
 
-% Spherical Grid
-theta = linspace(0, pi, 180);     % elevation
-phi = linspace(0, 2*pi, 360);     % azimuth
+%% Spherical Grid
+theta = linspace(0, pi, theta_res);       % elevation
+phi = linspace(0, 2*pi, phi_res);         % azimuth
 [TH, PH] = meshgrid(theta, phi);
 A = sin(TH).^2;
 
-% Cartesian Conversion
+%% Cartesian Conversion
 r = A;
 X = r .* sin(TH) .* cos(PH);
 Y = r .* sin(TH) .* sin(PH);
 Z = r .* cos(TH);
 
-% Vertices
+%% Vertices
 vertices = [X(:), Y(:), Z(:)];
 
-% Build face list
+%% Build face list
 rows = size(X, 1);
 cols = size(X, 2);
 faces = [];
@@ -33,15 +36,16 @@ for i = 1:rows-1
     end
 end
 
-% Colors
+%% Colors from Amplitude
 amplitude = A(:);
 amplitude = (amplitude - min(amplitude)) / (max(amplitude) - min(amplitude));
 R = round(255 * amplitude);
 G = zeros(size(R));
 B = round(255 * (1 - amplitude));
 
-% Write PLY
-fid = fopen('dipole_fixed.ply', 'w');
+%% Write PLY
+filename = 'dipole_fixed_optimized.ply';
+fid = fopen(filename, 'w');
 fprintf(fid, 'ply\nformat ascii 1.0\n');
 fprintf(fid, 'element vertex %d\n', size(vertices,1));
 fprintf(fid, 'property float x\nproperty float y\nproperty float z\n');
@@ -51,9 +55,11 @@ fprintf(fid, 'property list uchar int vertex_index\n');
 fprintf(fid, 'end_header\n');
 
 for i = 1:size(vertices,1)
-    fprintf(fid, '%f %f %f %d %d %d\n', vertices(i,1), vertices(i,2), vertices(i,3), R(i), G(i), B(i));
+    fprintf(fid, '%f %f %f %d %d %d\n', ...
+        vertices(i,1), vertices(i,2), vertices(i,3), R(i), G(i), B(i));
 end
 for i = 1:size(faces,1)
-    fprintf(fid, '3 %d %d %d\n', faces(i,1)-1, faces(i,2)-1, faces(i,3)-1); % -1 for 0-indexing in PLY
+    fprintf(fid, '3 %d %d %d\n', ...
+        faces(i,1)-1, faces(i,2)-1, faces(i,3)-1);  % 0-based indexing
 end
 fclose(fid);

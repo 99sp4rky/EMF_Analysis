@@ -1,0 +1,68 @@
+%% Spherical Grid
+theta = linspace(0, pi, 180);     % elevation
+phi = linspace(0, 2*pi, 360);     % azimuth
+[TH, PH] = meshgrid(theta, phi);
+A = sin(TH).^2;
+
+%% Cartesian Conversion
+r = A;
+X = r .* sin(TH) .* cos(PH);
+Y = r .* sin(TH) .* sin(PH);
+Z = r .* cos(TH);
+
+%% Vertices
+vertices = [X(:), Y(:), Z(:)];
+
+%% Colors from Amplitude
+amplitude = A(:);
+amplitude = (amplitude - min(amplitude)) / (max(amplitude) - min(amplitude));
+R = round(255 * amplitude);
+G = zeros(size(R));
+B = round(255 * (1 - amplitude));
+
+%% Downsampling (target ~10k vertices)
+target_vertex_count = 10000;
+if size(vertices,1) > target_vertex_count
+    idx = randperm(size(vertices,1), target_vertex_count);
+    vertices = vertices(idx, :);
+    R = R(idx);
+    G = G(idx);
+    B = B(idx);
+    faces = [];  % no faces in lightweight version
+else
+    %% Build face list (if not downsampled)
+    rows = size(X, 1);
+    cols = size(X, 2);
+    faces = [];
+
+    for i = 1:rows-1
+        for j = 1:cols-1
+            v1 = sub2ind([rows, cols], i, j);
+            v2 = sub2ind([rows, cols], i+1, j);
+            v3 = sub2ind([rows, cols], i+1, j+1);
+            v4 = sub2ind([rows, cols], i, j+1);
+
+            faces(end+1, :) = [v1, v2, v3];
+            faces(end+1, :) = [v1, v3, v4];
+        end
+    end
+end
+
+%% Write PLY File
+fid = fopen('dipole_preview.ply', 'w');  % rename to dipole_fixed.ply for full res
+fprintf(fid, 'ply\nformat ascii 1.0\n');
+fprintf(fid, 'element vertex %d\n', size(vertices,1));
+fprintf(fid, 'property float x\nproperty float y\nproperty float z\n');
+fprintf(fid, 'property uchar red\nproperty uchar green\nproperty uchar blue\n');
+fprintf(fid, 'element face %d\n', size(faces,1));
+fprintf(fid, 'property list uchar int vertex_index\n');
+fprintf(fid, 'end_header\n');
+
+for i = 1:size(vertices,1)
+    fprintf(fid, '%f %f %f %d %d %d\n', vertices(i,1), vertices(i,2), vertices(i,3), R(i), G(i), B(i));
+end
+for i = 1:size(faces,1)
+    fprintf(fid, '3 %d %d %d\n', faces(i,1)-1, faces(i,2)-1, faces(i,3)-1);
+end
+fclose(fid);
+
